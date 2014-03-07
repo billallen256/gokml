@@ -59,6 +59,8 @@ func (f *Folder) Render() string {
 		ret += object.Render()
 	}
 
+	ret += "</Folder>\n"
+
 	return ret
 }
 
@@ -96,7 +98,7 @@ func (pm *Placemark) Render() string {
 	ret := "<Placemark>\n" +
 		fmt.Sprintf("<name>%s</name>\n", pm.Name) +
 		fmt.Sprintf("<description>%s</description>\n", pm.Description) +
-		"<visibility>1</visiblity>\n" +
+		"<visibility>1</visibility>\n" +
 		pm.Geometry.Render() +
 		"</Placemark>\n"
 

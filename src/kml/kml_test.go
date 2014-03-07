@@ -6,11 +6,16 @@ import (
 )
 
 func TestKML(t *testing.T) {
-	k := NewKML("Test")
+	k := NewKML()
 	f := NewFolder("Test Folder", "This is a test folder")
 	k.AddFolder(f)
-	p := NewPoint(40.67, -73.9, 0.0)
+	p, err := NewPoint(40.67, -73.9, 0.0)
+
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+
 	pm := NewPlacemark("Manhattan", "The Big Apple", p)
-	f.AddObject(pm)
+	f.AddFeature(pm)
 	fmt.Printf("%s", k.Render())
 }

@@ -1,33 +1,43 @@
+// The kml package is used for rendering Google Earth Keyhole Markup Language
+// (KML) files.  Some of the terms used in this library are pulled from the
+// KML specification (recommended reading/reference).
 package kml
 
 import (
+	"errors"
 	"fmt"
+	"math"
 )
 
-type Renderable interface {
-	Render() string
+type renderable interface {
+	render() string
 }
 
+// KML represents the top-level KML document object.
 type KML struct {
-	Name    string
-	Folders []*Folder
+	folders []*Folder
 }
 
-func NewKML(name string) *KML {
+// NewKML returns a pointer to a KML struct.
+func NewKML() *KML {
 	f := make([]*Folder, 0, 2)
-	return &KML{name, f}
+	return &KML{f}
 }
 
+// AddFolder adds a new Folder to the KML document.
 func (k *KML) AddFolder(folder *Folder) {
-	k.Folders = append(k.Folders, folder)
+	if folder != nil {
+		k.folders = append(k.folders, folder)
+	}
 }
 
+// Renders the entire KML document.
 func (k *KML) Render() string {
 	ret := "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
 		"<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n"
 
-	for _, folder := range k.Folders {
-		ret += folder.Render()
+	for _, folder := range k.folders {
+		ret += folder.render()
 	}
 
 	ret += "</kml>\n"
@@ -35,28 +45,34 @@ func (k *KML) Render() string {
 	return ret
 }
 
+// Folder represents a folder in the KML document.
 type Folder struct {
-	Name        string
-	Description string
-	Objects     []Renderable
+	name        string
+	description string
+	features    []renderable
 }
 
+// Returns a pointer to a new Folder instance.
 func NewFolder(name string, desc string) *Folder {
-	o := make([]Renderable, 0, 10)
-	return &Folder{name, desc, o}
+	f := make([]renderable, 0, 10)
+	return &Folder{name, desc, f}
 }
 
-func (f *Folder) AddObject(object Renderable) {
-	f.Objects = append(f.Objects, object)
+// AddFeature adds a feature (Placemark, another Folder, etc.) to
+// the Folder.
+func (f *Folder) AddFeature(feature renderable) {
+	if feature != nil {
+		f.features = append(f.features, feature)
+	}
 }
 
-func (f *Folder) Render() string {
+func (f *Folder) render() string {
 	ret := "<Folder>\n" +
-		fmt.Sprintf("<name>%s</name>\n", f.Name) +
-		fmt.Sprintf("<description>%s</description>\n", f.Description)
+		fmt.Sprintf("<name>%s</name>\n", f.name) +
+		fmt.Sprintf("<description>%s</description>\n", f.description)
 
-	for _, object := range f.Objects {
-		ret += object.Render()
+	for _, feature := range f.features {
+		ret += feature.render()
 	}
 
 	ret += "</Folder>\n"
@@ -64,17 +80,40 @@ func (f *Folder) Render() string {
 	return ret
 }
 
+// Point represents a point on the Earth
 type Point struct {
-	Lat float64
-	Lon float64
-	Alt float64
+	Lat float64 // latitude
+	Lon float64 // longitude
+	Alt float64 // altitude in meters
 }
 
-func NewPoint(lat float64, lon float64, alt float64) *Point {
-	return &Point{lat, lon, alt}
+// NewPoint returns a pointer to a new Point instance.  An error is returned
+// if the latitude or longitude are invalid.
+func NewPoint(lat float64, lon float64, alt float64) (*Point, error) {
+	if math.IsNaN(lat) || math.IsInf(lat, 0) {
+		return nil, errors.New("Lat is NaN or Inf.")
+	}
+
+	if lat > 90.0 || lat < -90.0 {
+		return nil, errors.New(fmt.Sprintf("Invalid Lat: %f", lat))
+	}
+
+	if math.IsNaN(lon) || math.IsInf(lon, 0) {
+		return nil, errors.New("Lon is NaN or Inf.")
+	}
+
+	if lon > 180.0 || lon < -180.0 {
+		return nil, errors.New(fmt.Sprintf("Invalid Lon: %f", lon))
+	}
+
+	if math.IsNaN(alt) || math.IsInf(alt, 0) {
+		alt = 0.0
+	}
+
+	return &Point{lat, lon, alt}, nil
 }
 
-func (p *Point) Render() string {
+func (p *Point) render() string {
 	ret := "<Point>\n" +
 		"<extrude>0</extrude>\n" +
 		"<altitudeMode>clampToGround</altitudeMode>\n" +
@@ -84,22 +123,26 @@ func (p *Point) Render() string {
 	return ret
 }
 
+// Placemark represents a placemark in the KML document.
 type Placemark struct {
-	Name        string
-	Description string
-	Geometry    Renderable
+	name        string
+	description string
+	geometry    renderable
 }
 
-func NewPlacemark(name string, desc string, geom Renderable) *Placemark {
+// NewPlacemark returns a pointer to a new Placemark instance.  It takes a
+// name, description, and a geometry object (Point, Polygon, etc.) as
+// parameters.
+func NewPlacemark(name string, desc string, geom renderable) *Placemark {
 	return &Placemark{name, desc, geom}
 }
 
-func (pm *Placemark) Render() string {
+func (pm *Placemark) render() string {
 	ret := "<Placemark>\n" +
-		fmt.Sprintf("<name>%s</name>\n", pm.Name) +
-		fmt.Sprintf("<description>%s</description>\n", pm.Description) +
+		fmt.Sprintf("<name>%s</name>\n", pm.name) +
+		fmt.Sprintf("<description>%s</description>\n", pm.description) +
 		"<visibility>1</visibility>\n" +
-		pm.Geometry.Render() +
+		pm.geometry.render() +
 		"</Placemark>\n"
 
 	return ret

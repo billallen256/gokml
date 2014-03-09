@@ -4,7 +4,6 @@
 package kml
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -160,30 +159,31 @@ type Point struct {
 	Alt float64 // altitude in meters
 }
 
-// NewPoint returns a pointer to a new Point instance.  An error is returned
-// if the latitude or longitude are invalid.
-func NewPoint(lat float64, lon float64, alt float64) (*Point, error) {
+// NewPoint returns a pointer to a new Point instance.  Invalid points (those
+// that with lat outside of +/-90.0 and lon outside of +/-180.0, NaN or Inf
+// will return nil.
+func NewPoint(lat float64, lon float64, alt float64) *Point {
 	if math.IsNaN(lat) || math.IsInf(lat, 0) {
-		return nil, errors.New("Lat is NaN or Inf.")
+		return nil
 	}
 
 	if lat > 90.0 || lat < -90.0 {
-		return nil, errors.New(fmt.Sprintf("Invalid Lat: %f", lat))
+		return nil
 	}
 
 	if math.IsNaN(lon) || math.IsInf(lon, 0) {
-		return nil, errors.New("Lon is NaN or Inf.")
+		return nil
 	}
 
 	if lon > 180.0 || lon < -180.0 {
-		return nil, errors.New(fmt.Sprintf("Invalid Lon: %f", lon))
+		return nil
 	}
 
 	if math.IsNaN(alt) || math.IsInf(alt, 0) {
 		alt = 0.0
 	}
 
-	return &Point{lat, lon, alt}, nil
+	return &Point{lat, lon, alt}
 }
 
 func (p *Point) render() string {
@@ -196,7 +196,49 @@ func (p *Point) render() string {
 	return ret
 }
 
-// Placemark represents a placemark in the KML document.
+// LineString represents a series of lines in a KML document.
+type LineString struct {
+	coordinates []*Point
+}
+
+// NewLineString returns a new instance of LineString.
+func NewLineString() *LineString {
+	ls := make([]*Point, 0, 10)
+	return &LineString{ls}
+}
+
+// Adds a Point to the LineString.  In order to render, the LineString
+// needs at least two Points.  Points that are nil are ignored.
+func (ls *LineString) AddPoint(point *Point) {
+	if point != nil {
+		ls.coordinates = append(ls.coordinates, point)
+	}
+}
+
+func (ls *LineString) render() string {
+	if len(ls.coordinates) < 2 {
+		return ""
+	}
+
+	ret := "<LineString>\n" +
+		"<extrude>0</extrude>\n" +
+		"<tessellate>1</tessellate>\n" +
+		"<altitudeMode>clampToGround</altitudeMode>\n" +
+		"<coordinates>\n"
+
+	for _, coord := range ls.coordinates {
+		ret += fmt.Sprintf("%f,%f,%f\n", coord.Lon, coord.Lat, coord.Alt)
+	}
+
+	ret += "</coordinates>\n" +
+		"</LineString>\n"
+
+	return ret
+}
+
+// Placemark represents a placemark in the KML document.  All geometry
+// objects (points, lines, polygons, etc.) must be within a Placemark
+// instance.
 type Placemark struct {
 	name        string
 	description string

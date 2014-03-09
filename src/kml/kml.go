@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 )
 
 type renderable interface {
@@ -80,6 +81,78 @@ func (f *Folder) render() string {
 	return ret
 }
 
+// Style represents a style used for a geometry object (point, line,
+// polygon, etc.)
+type Style struct {
+	name      string
+	alpha     uint8
+	red       uint8
+	green     uint8
+	blue      uint8
+	iconURL   string
+	iconScale float64
+	fill      int8
+}
+
+// NewStyle returns a new instance of a Style.  The alpha, red, green, and
+// blue color properties are applied to point icon color as well as line and
+// polygon color.  Name must be a single word (no spaces).
+func NewStyle(name string, alpha uint8, red uint8, green uint8, blue uint8) *Style {
+	return &Style{name, alpha, red, green, blue, "http://maps.google.com/mapfiles/kml/pushpin/ylw-pushpin.png", 1.1, 1}
+}
+
+// SetIconURL changes the icon that will be used for point placemarks.
+// Built-in icon URL's can be seen in Google Earth when setting the
+// placemark icon in the placemark properties dialog box.
+func (s *Style) SetIconURL(url string) {
+	url = strings.TrimSpace(url)
+
+	if len(url) > 0 {
+		s.iconURL = url
+	}
+}
+
+// SetIconScale changes the icon scale from the default of 1.1.  Valid values
+// are between 0.0 and 100.0.  Invalid values are ignored.
+func (s *Style) SetIconScale(scale float64) {
+	if scale >= 0.0 && scale <= 100.0 {
+		s.iconScale = scale
+	}
+}
+
+// SetPolygonFill specifies whether to fill in polygons.  The default is to
+// not fill in the polygon.
+func (s *Style) SetPolygonFill(fill bool) {
+	if fill == true {
+		s.fill = 1
+	} else {
+		s.fill = 0
+	}
+}
+
+func (s *Style) render() string {
+	colorStr := fmt.Sprintf("<color>%02x%02x%02x%02x</color>\n", s.alpha, s.blue, s.green, s.red) // yes, ABGR
+	ret := fmt.Sprintf("<Style id=\"%s\">\n", s.name) +
+		"<IconStyle>\n" +
+		colorStr +
+		fmt.Sprintf("<scale>%f</scale>\n", s.iconScale) +
+		fmt.Sprintf("<Icon><href>%s</href></Icon>\n", s.iconURL) +
+		"</IconStyle>\n" +
+		"<LineStyle>\n" +
+		colorStr +
+		"<width>3</width>\n" +
+		"</LineStyle>\n" +
+		"<PolyStyle>\n" +
+		colorStr +
+		"<colorMode>normal</colorMode>\n" +
+		fmt.Sprintf("<fill>%d</fill>\n", s.fill) +
+		"<outline>1</outline>\n" +
+		"</PolyStyle>\n" +
+		"</Style>\n"
+
+	return ret
+}
+
 // Point represents a point on the Earth
 type Point struct {
 	Lat float64 // latitude
@@ -128,21 +201,37 @@ type Placemark struct {
 	name        string
 	description string
 	geometry    renderable
+	style       string
 }
 
 // NewPlacemark returns a pointer to a new Placemark instance.  It takes a
 // name, description, and a geometry object (Point, Polygon, etc.) as
 // parameters.
 func NewPlacemark(name string, desc string, geom renderable) *Placemark {
-	return &Placemark{name, desc, geom}
+	return &Placemark{name, desc, geom, ""}
+}
+
+// SetStyle sets the style of the Placemark to the specified name.  The KML
+// document must have a Style instance with a matching name (see NewStyle).
+func (pm *Placemark) SetStyle(name string) {
+	name = strings.TrimSpace(name)
+
+	if len(name) > 0 {
+		pm.style = name
+	}
 }
 
 func (pm *Placemark) render() string {
 	ret := "<Placemark>\n" +
 		fmt.Sprintf("<name>%s</name>\n", pm.name) +
 		fmt.Sprintf("<description>%s</description>\n", pm.description) +
-		"<visibility>1</visibility>\n" +
-		pm.geometry.render() +
+		"<visibility>1</visibility>\n"
+
+	if len(pm.style) > 0 {
+		ret += fmt.Sprintf("<styleUrl>#%s</styleUrl>\n", pm.style)
+	}
+
+	ret += pm.geometry.render() +
 		"</Placemark>\n"
 
 	return ret

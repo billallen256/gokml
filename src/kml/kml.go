@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"sync"
 )
 
 type renderable interface {
@@ -16,18 +17,21 @@ type renderable interface {
 // KML represents the top-level KML document object.
 type KML struct {
 	folders []*Folder
+	mutex   *sync.Mutex
 }
 
 // NewKML returns a pointer to a KML struct.
 func NewKML() *KML {
 	f := make([]*Folder, 0, 2)
-	return &KML{f}
+	return &KML{f, new(sync.Mutex)}
 }
 
 // AddFolder adds a new Folder to the KML document.
 func (k *KML) AddFolder(folder *Folder) {
 	if folder != nil {
+		k.mutex.Lock()
 		k.folders = append(k.folders, folder)
+		k.mutex.Unlock()
 	}
 }
 
@@ -50,19 +54,22 @@ type Folder struct {
 	name        string
 	description string
 	features    []renderable
+	mutex       *sync.Mutex
 }
 
 // Returns a pointer to a new Folder instance.
 func NewFolder(name string, desc string) *Folder {
 	f := make([]renderable, 0, 10)
-	return &Folder{name, desc, f}
+	return &Folder{name, desc, f, new(sync.Mutex)}
 }
 
 // AddFeature adds a feature (Placemark, another Folder, etc.) to
 // the Folder.
 func (f *Folder) AddFeature(feature renderable) {
 	if feature != nil {
+		f.mutex.Lock()
 		f.features = append(f.features, feature)
+		f.mutex.Unlock()
 	}
 }
 
@@ -199,19 +206,22 @@ func (p *Point) render() string {
 // LineString represents a series of lines in a KML document.
 type LineString struct {
 	coordinates []*Point
+	mutex       *sync.Mutex
 }
 
 // NewLineString returns a new instance of LineString.
 func NewLineString() *LineString {
 	ls := make([]*Point, 0, 10)
-	return &LineString{ls}
+	return &LineString{ls, new(sync.Mutex)}
 }
 
 // Adds a Point to the LineString.  In order to render, the LineString
 // needs at least two Points.  Points that are nil are ignored.
 func (ls *LineString) AddPoint(point *Point) {
 	if point != nil {
+		ls.mutex.Lock()
 		ls.coordinates = append(ls.coordinates, point)
+		ls.mutex.Unlock()
 	}
 }
 

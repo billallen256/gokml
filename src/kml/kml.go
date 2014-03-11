@@ -246,6 +246,62 @@ func (ls *LineString) render() string {
 	return ret
 }
 
+// Polygon represents a polygon in the KML document.  Must be added to a
+// Placemark in order to render.
+type Polygon struct {
+	points []*Point
+	mutex  *sync.Mutex
+}
+
+// NewPolygon returns a new instance of Polygon.
+func NewPolygon() *Polygon {
+	p := make([]*Point, 0, 4)
+	return &Polygon{p, new(sync.Mutex)}
+}
+
+// AddPoint add a point (vertex) to the Polygon instance.  The Polygon will
+// automatically close the ring if the last Point does not match the first
+// Point.  For example, a box needs four Points, but if only three are added,
+// then the fourth Point (which matches the first) will be added when the
+// Polygon is rendered.
+func (poly *Polygon) AddPoint(point *Point) {
+	if point != nil {
+		poly.mutex.Lock()
+		poly.points = append(poly.points, point)
+		poly.mutex.Unlock()
+	}
+}
+
+func (poly *Polygon) render() string {
+	if len(poly.points) == 0 {
+		return ""
+	}
+
+	firstPoint := poly.points[0]
+	lastPoint := poly.points[len(poly.points)-1]
+
+	if *lastPoint != *firstPoint {
+		poly.AddPoint(firstPoint) // close the polygon
+	}
+
+	ret := "<Polygon>\n" +
+		"<extrude>1</extrude>\n" +
+		"<altitudeMode>clampToGround</altitudeMode>\n" +
+		"<outerBoundaryIs>\n" +
+		"<LinearRing>\n" +
+		"<coordinates>\n"
+
+	for _, point := range poly.points {
+		ret += fmt.Sprintf("%f,%f,%f\n", point.Lon, point.Lat, point.Alt)
+	}
+
+	ret += "</coordinates>\n" +
+		"</LinearRing>\n" +
+		"</Polygon>\n"
+
+	return ret
+}
+
 // Placemark represents a placemark in the KML document.  All geometry
 // objects (points, lines, polygons, etc.) must be within a Placemark
 // instance.

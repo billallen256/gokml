@@ -261,8 +261,8 @@ func NewPolygon() *Polygon {
 
 // AddPoint add a point (vertex) to the Polygon instance.  The Polygon will
 // automatically close the ring if the last Point does not match the first
-// Point.  For example, a box needs four Points, but if only three are added,
-// then the fourth Point (which matches the first) will be added when the
+// Point.  For example, a box needs five Points, but if only four are added,
+// then the fifth Point (which matches the first) will be added when the
 // Polygon is rendered.
 func (poly *Polygon) AddPoint(point *Point) {
 	if point != nil {
@@ -297,6 +297,7 @@ func (poly *Polygon) render() string {
 
 	ret += "</coordinates>\n" +
 		"</LinearRing>\n" +
+		"</outerBoundaryIs>\n" +
 		"</Polygon>\n"
 
 	return ret

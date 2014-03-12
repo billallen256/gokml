@@ -17,6 +17,9 @@ func TestKML(t *testing.T) {
 	flights := NewStyle("FlightStyle", 240, 255, 0, 0)
 	f.AddFeature(flights)
 
+	states := NewStyle("StateStyle", 240, 0, 0, 255)
+	f.AddFeature(states)
+
 	manhattan := NewPoint(40.67, -73.9, 0.0)
 	pm := NewPlacemark("Manhattan", "The Big Apple", manhattan)
 	pm.SetStyle("PlaceStyle")
@@ -44,6 +47,15 @@ func TestKML(t *testing.T) {
 	flightPath.AddPoint(tokyo)
 	pm = NewPlacemark("Flight Path", "", flightPath)
 	pm.SetStyle("FlightStyle")
+	f.AddFeature(pm)
+
+	colorado := NewPolygon()
+	colorado.AddPoint(NewPoint(41.071904, -101.868843, 0.0))
+	colorado.AddPoint(NewPoint(36.926393, -101.868843, 0.0))
+	colorado.AddPoint(NewPoint(36.926393, -109.279635, 0.0))
+	colorado.AddPoint(NewPoint(41.071904, -109.279635, 0.0))
+	pm = NewPlacemark("Colorado", "The Centennial State", colorado)
+	pm.SetStyle("StateStyle")
 	f.AddFeature(pm)
 
 	fmt.Printf("%s", k.Render())

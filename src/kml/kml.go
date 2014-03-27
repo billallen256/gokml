@@ -8,6 +8,7 @@ import (
 	"math"
 	"strings"
 	"sync"
+	"time"
 )
 
 type renderable interface {
@@ -311,13 +312,16 @@ type Placemark struct {
 	description string
 	geometry    renderable
 	style       string
+	beginTime time.Time
+	endTime time.Time
+	hasTime bool
 }
 
 // NewPlacemark returns a pointer to a new Placemark instance.  It takes a
 // name, description, and a geometry object (Point, Polygon, etc.) as
 // parameters.
 func NewPlacemark(name string, desc string, geom renderable) *Placemark {
-	return &Placemark{name, desc, geom, ""}
+	return &Placemark{name, desc, geom, "", time.Now(), time.Now(), false}
 }
 
 // SetStyle sets the style of the Placemark to the specified name.  The KML
@@ -330,6 +334,20 @@ func (pm *Placemark) SetStyle(name string) {
 	}
 }
 
+// SetTime sets the timespan that this placemark is active and should be
+// displayed.
+func (pm *Placemark) SetTime(beginTime time.Time, endTime time.Time) {
+	if beginTime.After(endTime) {
+		pm.beginTime = endTime
+		pm.endTime = beginTime
+	} else {
+		pm.beginTime = beginTime
+		pm.endTime = endTime
+	}
+
+	pm.hasTime = true
+}
+
 func (pm *Placemark) render() string {
 	ret := "<Placemark>\n" +
 		fmt.Sprintf("<name>%s</name>\n", pm.name) +
@@ -338,6 +356,13 @@ func (pm *Placemark) render() string {
 
 	if len(pm.style) > 0 {
 		ret += fmt.Sprintf("<styleUrl>#%s</styleUrl>\n", pm.style)
+	}
+
+	if pm.hasTime {
+		ret += "<TimeSpan>\n" +
+			fmt.Sprintf("<begin>%s</begin>\n", pm.beginTime.Format(time.RFC3339)) +
+			fmt.Sprintf("<end>%s</end>\n", pm.endTime.Format(time.RFC3339)) +
+			"</TimeSpan>\n"
 	}
 
 	ret += pm.geometry.render() +

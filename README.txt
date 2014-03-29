@@ -1,1 +1,3 @@
-Packages for golang.  See LICENSE.txt for license info.
+Packages for Go (golang).
+
+kml - A basic Google Earth KML rendering library.

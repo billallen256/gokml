@@ -312,9 +312,9 @@ type Placemark struct {
 	description string
 	geometry    renderable
 	style       string
-	beginTime time.Time
-	endTime time.Time
-	hasTime bool
+	beginTime   time.Time
+	endTime     time.Time
+	hasTime     bool
 }
 
 // NewPlacemark returns a pointer to a new Placemark instance.  It takes a

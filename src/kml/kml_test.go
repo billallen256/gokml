@@ -57,7 +57,7 @@ func TestKML(t *testing.T) {
 	colorado.AddPoint(NewPoint(41.071904, -109.279635, 0.0))
 	pm = NewPlacemark("Colorado", "The Centennial State", colorado)
 	pm.SetStyle("StateStyle")
-	pm.SetTime(time.Now().Add(-10 * time.Hour), time.Now())
+	pm.SetTime(time.Now().Add(-10*time.Hour), time.Now())
 	f.AddFeature(pm)
 
 	fmt.Printf("%s", k.Render())

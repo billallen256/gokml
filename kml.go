@@ -1,7 +1,7 @@
 // The kml package is used for rendering Google Earth Keyhole Markup Language
 // (KML) files.  Some of the terms used in this library are pulled from the
 // KML specification (recommended reading/reference).
-package kml
+package gokml
 
 import (
 	"fmt"

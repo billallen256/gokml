@@ -7,9 +7,9 @@ import (
 )
 
 func TestKML(t *testing.T) {
-	k := NewKML()
+	k := NewKML("Test KML")
 	f := NewFolder("Test Folder", "This is a test folder")
-	k.AddFolder(f)
+	k.AddFeature(f)
 
 	places := NewStyle("PlaceStyle", 240, 0, 255, 0)
 	places.SetIconURL("http://maps.google.com/mapfiles/kml/paddle/wht-circle.png")

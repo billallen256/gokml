@@ -17,23 +17,18 @@ type renderable interface {
 
 // KML represents the top-level KML document object.
 type KML struct {
-	folders []*Folder
-	mutex   *sync.Mutex
+	rootFolder *Folder
 }
 
 // NewKML returns a pointer to a KML struct.
-func NewKML() *KML {
-	f := make([]*Folder, 0, 2)
-	return &KML{f, new(sync.Mutex)}
+func NewKML(name string) *KML {
+	return &KML{NewFolder(name, "")}
 }
 
-// AddFolder adds a new Folder to the KML document.
-func (k *KML) AddFolder(folder *Folder) {
-	if folder != nil {
-		k.mutex.Lock()
-		k.folders = append(k.folders, folder)
-		k.mutex.Unlock()
-	}
+// AddFeature adds a feature (Placemark, another folder, etc.) to
+// the KML document.
+func (k *KML) AddFeature(feature renderable) {
+	k.rootFolder.AddFeature(feature)
 }
 
 // Renders the entire KML document.
@@ -41,9 +36,7 @@ func (k *KML) Render() string {
 	ret := "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
 		"<kml xmlns=\"http://www.opengis.net/kml/2.2\">\n"
 
-	for _, folder := range k.folders {
-		ret += folder.render()
-	}
+	ret += k.rootFolder.render()
 
 	ret += "</kml>\n"
 
